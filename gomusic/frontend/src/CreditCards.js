@@ -124,29 +124,36 @@ class CreditCardForm extends React.Component {
 
   async handleSubmit(event) {
     event.preventDefault();
-    console.log('Handle submit called, with name: ' + this.state.value);
-
-    let { token } = await this.props.stripe.createToken({
-      name: this.state.value,
-    });
-    if (token == null) {
-      console.log('invalid token');
-      this.setState({ status: FAILEDSTATE });
-      return;
+    let id = '';
+    if (!this.state.useExisting) {
+      let { token } = await this.props.stripe.createToken({
+        name: this.state.value,
+      });
+      if (token == null) {
+        console.log('invalid token');
+        this.setState({ status: FAILEDSTATE });
+        return;
+      }
+      id = token.id;
     }
 
-    let response = await fetch('/charge', {
+    let response = await fetch('/users/charge', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         token: token.id,
-        operation: this.props.operation,
+        customer_id: this.props.user,
+        product_id: this.props.productid,
+        sell_price: this.props.price,
+        rememberCard: this.state.remember !== undefined,
+        useExisting: this.state.useExisting,
       }),
     });
-    console.log(response.ok);
     if (response.ok) {
       console.log('Purchase Complete!');
       this.setState({ status: SUCCESSSTATE });
+    } else {
+      this.setState({ status: FAILEDSTATE });
     }
     //  document.getElementsByClassName('#modal').modal('hide');
   }

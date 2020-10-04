@@ -1,44 +1,66 @@
 package rest
 
 import (
+	"fmt" //"github.com/gin-gonic/autotls"
+
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
 func RunAPI(address string) error {
-	// Gin 엔진
+	h, err := NewHandler()
+	if err != nil {
+		return err
+	}
+	return RunAPIWithHandler(address, h)
+}
+
+func RunMockAPI(address string) error {
+	h := NewMockHandler()
+	return RunAPIWithHandler(address, h)
+}
+
+func RunAPIWithHandler(address string, h HandlerInterface) error {
+	//Get gin's default engine
 	r := gin.Default()
-	// 핸들러 생성
-	h, _ := NewHandler()
-	// 상품 목록
+	//r.Use(MyCustomLogger())
+
+	//get products
 	r.GET("/products", h.GetProducts)
-	// 프로모션 목록
+	//get promos
 	r.GET("/promos", h.GetPromos)
+	/*
+		//post user sign in
+		r.POST("/user/signin", h.SignIn)
+		//post user sign out
+		r.POST("/user/:id/signout", h.SignOut)
+		//get user orders
+		r.GET("/user/:id/orders", h.GetOrders)
+		//post purchase charge
+		r.POST("/user/charge", h.Charge)
+	*/
 
 	userGroup := r.Group("/user")
 	{
 		userGroup.POST("/:id/signout", h.SignOut)
 		userGroup.GET("/:id/orders", h.GetOrders)
 	}
+
 	usersGroup := r.Group("/users")
 	{
 		usersGroup.POST("/charge", h.Charge)
 		usersGroup.POST("/signin", h.SignIn)
 		usersGroup.POST("", h.AddUser)
 	}
-
-	/*
-		// 사용자 로그인 POST 요청
-		r.POST("/users/signin", h.SignIn)
-		// 사용자 추가 POST 요청
-		r.POST("/users", h.AddUser)
-		// 사용자 로그아웃 POST 요청
-		r.POST("/user/:id/signout", h.SignOut)
-		// 구매 목록 조회
-		r.GET("/user/:id/orders", h.GetOrders)
-		// 결제 POST 요청
-		r.POST("/users/charge", h.Charge)
-	*/
-
-	// 서버 시작
+	r.Use(static.ServeRoot("/", "../public/build"))
 	return r.Run(address)
+	//return r.RunTLS(address, "cert.pem", "key.pem")
+}
+
+func MyCustomLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("************************************")
+		c.Next()
+		fmt.Println("************************************")
+	}
 }

@@ -5,16 +5,19 @@ import Nav from './Navigation';
 import { SignInModalWindow, BuyModalWindow } from './modalwindows';
 import About from './About';
 import Orders from './orders';
+import cookie from 'js-cookie';
 
 class App extends React.Component {
   constructor(props) {
     super(props);
+    const user = cookie.getJSON('user') || { loggedin: false };
     this.state = {
-      user: {
-        loggedin: false,
-        name: '',
-      },
+      user: user,
+      showSignInModal: false,
+      showBuyModal: false,
     };
+    this.handleSignedIn = this.handleSignedIn.bind(this);
+    this.handleSignedOut = this.handleSignedOut.bind(this);
     this.showSignInModalWindow = this.showSignInModalWindow.bind(this);
     this.toggleSignInModalWindow = this.toggleSignInModalWindow.bind(this);
     this.showBuyModalWindow = this.showBuyModalWindow.bind(this);
@@ -22,9 +25,21 @@ class App extends React.Component {
   }
 
   handleSignedIn(user) {
-    this.setState({
+    console.log('Sign in happening...');
+    const state = this.state;
+    const newState = Object.assign({}, state, {
       user: user,
+      showSignInModal: false,
     });
+    this.setState(newState);
+  }
+
+  handleSignedOut() {
+    console.log('Call app signed out...');
+    const state = this.state;
+    const newState = Object.assign({}, state, { user: { loggedin: false } });
+    this.setState(newState);
+    cookie.set('user', { loggedin: false });
   }
 
   showSignInModalWindow() {
@@ -58,18 +73,7 @@ class App extends React.Component {
     });
     this.setState(newState);
   }
-
-  componentDidMount() {
-    fetch('user.json')
-      .then((res) => res.json())
-      .then((result) => {
-        console.log('Fetch...');
-        this.setState({
-          user: result,
-        });
-      });
-  }
-
+  //location='user.json'
   render() {
     return (
       <div>
@@ -77,6 +81,7 @@ class App extends React.Component {
           <div>
             <Nav
               user={this.state.user}
+              handleSignedOut={this.handleSignedOut}
               showModalWindow={this.showSignInModalWindow}
             />
             <div className="container pt-4 mt-4">
@@ -85,7 +90,7 @@ class App extends React.Component {
                 path="/"
                 render={() => (
                   <CardContainer
-                    location="cards.json"
+                    location="/products"
                     showBuyModal={this.showBuyModalWindow}
                   />
                 )}
@@ -94,7 +99,7 @@ class App extends React.Component {
                 path="/promos"
                 render={() => (
                   <CardContainer
-                    location="promos.json"
+                    location="/promos"
                     promo={true}
                     showBuyModal={this.showBuyModalWindow}
                   />
@@ -103,12 +108,17 @@ class App extends React.Component {
               {this.state.user.loggedin ? (
                 <Route
                   path="/myorders"
-                  render={() => <Orders location="user.json" />}
+                  render={() => (
+                    <Orders
+                      location={'/user/' + this.state.user.ID + '/orders'}
+                    />
+                  )}
                 />
               ) : null}
               <Route path="/about" component={About} />
             </div>
             <SignInModalWindow
+              handleSignedIn={this.handleSignedIn}
               showModal={this.state.showSignInModal}
               toggle={this.toggleSignInModalWindow}
             />
